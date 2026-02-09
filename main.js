@@ -22,7 +22,7 @@ scene.add(light, new THREE.AmbientLight(0xffffff, 0.7), new THREE.GridHelper(200
 const mazeLoader = new GLTFLoader();
 mazeLoader.load('/models/maze.glb', (gltf) => {
     const maze = gltf.scene;
-    maze.position.set(0, 20,);
+    maze.position.set(0,10,0);
     scene.add(maze);
 
     maze.traverse((child) => {
