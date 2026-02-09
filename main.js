@@ -29,7 +29,7 @@ mazeLoader.load('/models/maze.glb', (gltf) => {
     maze.position.set(0, 0, 0); 
     
     // もし小さすぎ/大きすぎたらここで調整（とりあえず2倍にしてみる例）
-    // maze.scale.set(2, 2, 2);
+    maze.scale.set(50, 50, 50);
 
   
     scene.add(maze);
