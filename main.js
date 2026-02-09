@@ -1,41 +1,22 @@
 import { io } from "socket.io-client";
-const socket = io("https://imori-server.onrender.com")
+const socket = io("http://localhost:3000");
 
 const remotePlayers = {}; // 他人のモデルを保存するオブジェクト
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
+// --- 設定 ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xa0a0a0);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-
-// --- フィールド（迷路）の読み込み ---
-const mazeLoader = new GLTFLoader();
-let mazeModel;
-
-mazeLoader.load('/models/maze.glb', (gltf) => {
-  mazeModel = gltf.scene;
-  
-  // 迷路のサイズ調整（モデルが小さい場合や大きい場合に備えて）
-  // mazeModel.scale.set(2, 2, 2); 
-  
-  scene.add(mazeModel);
-
-  // モデル内の全メッシュに対して設定
-  mazeModel.traverse((child) => {
-    if (child.isMesh) {
-      child.receiveShadow = true; // 影を受ける
-      child.castShadow = true;    // 影を落とす
-      
-      // もし迷路が真っ暗なら、素材の明るさを調整
-      if(child.material) child.material.side = THREE.DoubleSide; 
-    }
-  });
-  console.log("Maze loaded!");
-}, undefined, (error) => {
-  console.error("Maze Load Error:", error);
-});
-
-
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 7.5);
+scene.add(light, new THREE.AmbientLight(0xffffff, 0.7), new THREE.GridHelper(200, 50));
 
 // --- 変数 ---
 let model, mixer;
@@ -61,21 +42,6 @@ const loader = new GLTFLoader();
 
 // 1. Idle版の読み込み
 loader.load('/models/idle.glb', (gltf) => {
-
-  // --- ここから追加：メッシュ以外の「螺旋」などを隠す ---
-  model.traverse((child) => {
-    // 種類が「Mesh」ではないもの（Line、Object3D、Helperなど）を隠す
-    if (!child.isMesh && child !== model) {
-      child.visible = false;
-    }
-    // もし螺旋がメッシュだった場合のために、名前で判定して消す予備策
-    if (child.name.toLowerCase().includes("spiral") || child.name.toLowerCase().includes("circle")) {
-      child.visible = false;
-    }
-  });
-  // --- ここまで追加 ---
-
-
   model = gltf.scene;
   scene.add(model);
   model.rotation.y = yaw;
@@ -114,17 +80,20 @@ function createRemotePlayer(id) {
 // サーバーからの更新を受け取る
 socket.on("updatePlayers", (players) => {
   Object.keys(players).forEach((id) => {
-    if (id === socket.id) return;
+    if (id === socket.id) return; // 自分は無視
 
     if (!remotePlayers[id]) {
+      // まだいないプレイヤーなら作成
       createRemotePlayer(id);
     } else {
+      // すでにいるプレイヤーなら座標と角度を更新
       const p = players[id];
       const remote = remotePlayers[id];
       if (remote.model) {
-        // 直接 set せずに、目標地点（targetPos）として保存する
-        remote.targetPos = new THREE.Vector3(p.x, p.y, p.z);
+        remote.model.position.set(p.x, p.y, p.z);
         remote.model.rotation.y = p.yaw;
+        // アニメーションの切り替え（簡易版）
+        // if (p.action !== remote.currentAction) { ... fadeToAction ... }
       }
     }
   });
@@ -161,14 +130,10 @@ function animate() {
   const delta = clock.getDelta();
   if (mixer) mixer.update(delta);
 
-Object.values(remotePlayers).forEach(p => {
+  Object.values(remotePlayers).forEach(p => {
     if (p.mixer) p.mixer.update(delta);
-    
-    // 目標地点がある場合、じわじわ近づける（補間処理）
-    if (p.model && p.targetPos) {
-      p.model.position.lerp(p.targetPos, 0.2); // 0.2は近づくスピード（0.1〜0.3で調整）
-    }
   });
+
   if (model) {
     const moveSpeed = 0.15;
     let inputX = 0;
@@ -201,37 +166,13 @@ Object.values(remotePlayers).forEach(p => {
       fadeToAction('idle');
     }
 
-// --- 当たり判定（強化版） ---
-    Object.values(remotePlayers).forEach(remote => {
-      if (remote.model) {
-        const d = model.position.distanceTo(remote.model.position); // 名前を 'd' にして衝突回避
-        const minDistance = 1.8; 
-
-        if (d < minDistance) {
-          const direction = new THREE.Vector3()
-            .subVectors(model.position, remote.model.position)
-            .normalize();
-          
-          const overlap = minDistance - d;
-          
-          model.position.x += direction.x * overlap;
-          model.position.z += direction.z * overlap;
-          
-          inputX = 0;
-          inputZ = 0;
-        }
-      }
-    }); // ← ここで forEach を閉じる！
-
     // 三人称カメラ追従
-    const camDist = 8; // 名前を 'camDist' にすると安全！
-    camera.position.x = model.position.x + camDist * Math.sin(yaw) * Math.cos(pitch);
-    camera.position.y = model.position.y + camDist * Math.sin(pitch) + 3;
-    camera.position.z = model.position.z + camDist * Math.cos(yaw) * Math.cos(pitch);
+    const distance = 8; 
+    camera.position.x = model.position.x + distance * Math.sin(yaw) * Math.cos(pitch);
+    camera.position.y = model.position.y + distance * Math.sin(pitch) + 3;
+    camera.position.z = model.position.z + distance * Math.cos(yaw) * Math.cos(pitch);
     camera.lookAt(model.position.x, model.position.y + 1, model.position.z);
-  } // ← ここで if(model) を閉じる
-
+  }
   renderer.render(scene, camera);
-} // ← ここで animate 関数を閉じる
-
+}
 animate();
