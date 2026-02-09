@@ -23,6 +23,14 @@ scene.add(light, new THREE.AmbientLight(0xffffff, 0.7));
 const mazeLoader = new GLTFLoader();
 mazeLoader.load('/models/maze.glb', (gltf) => {
     const maze = gltf.scene;
+
+    // 迷路を原点 (0, 0, 0) に強制配置
+    maze.position.set(0, 0, 0); 
+    
+    // もし小さすぎ/大きすぎたらここで調整（とりあえず2倍にしてみる例）
+    // maze.scale.set(2, 2, 2);
+
+  
     scene.add(maze);
     maze.traverse((child) => {
         if (child.isMesh) {
