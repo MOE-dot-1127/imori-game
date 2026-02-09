@@ -6,39 +6,36 @@ const remotePlayers = {}; // 他人のモデルを保存するオブジェクト
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-// --- 設定 ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xffffff);
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 10, 7.5);
-scene.add(light, new THREE.AmbientLight(0xffffff, 0.7));
 
 
-// --- フィールドの見た目変更（真っ白空間Ver.） ---
+// --- フィールド（迷路）の読み込み ---
+const mazeLoader = new GLTFLoader();
+let mazeModel;
 
-// 1. 背景を真っ白にする
-scene.background = new THREE.Color(0xffffff); 
+mazeLoader.load('/models/maze.glb', (gltf) => {
+  mazeModel = gltf.scene;
+  
+  // 迷路のサイズ調整（モデルが小さい場合や大きい場合に備えて）
+  // mazeModel.scale.set(2, 2, 2); 
+  
+  scene.add(mazeModel);
 
-// 2. 霧（フォグ）を追加して遠くを白く飛ばす
-scene.fog = new THREE.Fog(0xffffff, 10, 50);
-
-// 3. 地面も「白」にする
-const floorGeometry = new THREE.PlaneGeometry(1000, 1000); 
-const floorMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0xffffff, // ここを 0xffffff に！
-    roughness: 1.0 
+  // モデル内の全メッシュに対して設定
+  mazeModel.traverse((child) => {
+    if (child.isMesh) {
+      child.receiveShadow = true; // 影を受ける
+      child.castShadow = true;    // 影を落とす
+      
+      // もし迷路が真っ暗なら、素材の明るさを調整
+      if(child.material) child.material.side = THREE.DoubleSide; 
+    }
+  });
+  console.log("Maze loaded!");
+}, undefined, (error) => {
+  console.error("Maze Load Error:", error);
 });
-const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-floor.rotation.x = -Math.PI / 2;
-scene.add(floor);
 
-// 4. グリッドは一旦消す（もし線が欲しければコメントアウトを外してね）
-// scene.add(new THREE.GridHelper(200, 50, 0xcccccc, 0xeeeeee)); 
+
 
 // --- 変数 ---
 let model, mixer;
@@ -78,7 +75,7 @@ loader.load('/models/idle.glb', (gltf) => {
   });
   // --- ここまで追加 ---
 
-  
+
   model = gltf.scene;
   scene.add(model);
   model.rotation.y = yaw;
