@@ -185,16 +185,37 @@ function animate() {
       fadeToAction('idle');
     }
 
+// --- 当たり判定（強化版） ---
+    Object.values(remotePlayers).forEach(remote => {
+      if (remote.model) {
+        const d = model.position.distanceTo(remote.model.position); // 名前を 'd' にして衝突回避
+        const minDistance = 1.8; 
+
+        if (d < minDistance) {
+          const direction = new THREE.Vector3()
+            .subVectors(model.position, remote.model.position)
+            .normalize();
+          
+          const overlap = minDistance - d;
+          
+          model.position.x += direction.x * overlap;
+          model.position.z += direction.z * overlap;
+          
+          inputX = 0;
+          inputZ = 0;
+        }
+      }
+    }); // ← ここで forEach を閉じる！
+
     // 三人称カメラ追従
-    const distance = 8; 
-    camera.position.x = model.position.x + distance * Math.sin(yaw) * Math.cos(pitch);
-    camera.position.y = model.position.y + distance * Math.sin(pitch) + 3;
-    camera.position.z = model.position.z + distance * Math.cos(yaw) * Math.cos(pitch);
+    const camDist = 8; // 名前を 'camDist' にすると安全！
+    camera.position.x = model.position.x + camDist * Math.sin(yaw) * Math.cos(pitch);
+    camera.position.y = model.position.y + camDist * Math.sin(pitch) + 3;
+    camera.position.z = model.position.z + camDist * Math.cos(yaw) * Math.cos(pitch);
     camera.lookAt(model.position.x, model.position.y + 1, model.position.z);
-  }
+  } // ← ここで if(model) を閉じる
+
   renderer.render(scene, camera);
-}
-
-
+} // ← ここで animate 関数を閉じる
 
 animate();
