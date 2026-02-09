@@ -23,7 +23,7 @@ const mazeLoader = new GLTFLoader();
 mazeLoader.load('/models/maze.glb', (gltf) => {
     const maze = gltf.scene;
     maze.position.set(0, 0, 0); 
-    maze.scale.set(50, 50, 50); // 米粒サイズ対策で50倍に設定
+   //aze.scale.set(50, 50, 50); // 米粒サイズ対策で50倍に設定
     scene.add(maze);
 
     maze.traverse((child) => {
