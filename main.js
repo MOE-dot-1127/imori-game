@@ -64,6 +64,21 @@ const loader = new GLTFLoader();
 
 // 1. Idle版の読み込み
 loader.load('/models/idle.glb', (gltf) => {
+
+  // --- ここから追加：メッシュ以外の「螺旋」などを隠す ---
+  model.traverse((child) => {
+    // 種類が「Mesh」ではないもの（Line、Object3D、Helperなど）を隠す
+    if (!child.isMesh && child !== model) {
+      child.visible = false;
+    }
+    // もし螺旋がメッシュだった場合のために、名前で判定して消す予備策
+    if (child.name.toLowerCase().includes("spiral") || child.name.toLowerCase().includes("circle")) {
+      child.visible = false;
+    }
+  });
+  // --- ここまで追加 ---
+
+  
   model = gltf.scene;
   scene.add(model);
   model.rotation.y = yaw;
