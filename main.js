@@ -22,8 +22,7 @@ scene.add(light, new THREE.AmbientLight(0xffffff, 0.7), new THREE.GridHelper(200
 const mazeLoader = new GLTFLoader();
 mazeLoader.load('/models/maze.glb', (gltf) => {
     const maze = gltf.scene;
-    maze.position.set(0, 10,0);
-   //wze.scale.set(50, 50, 50); // 米粒サイズ対策で50倍に設定
+    maze.position.set(0, 50,0);
     scene.add(maze);
 
     maze.traverse((child) => {
