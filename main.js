@@ -181,6 +181,50 @@ function animate() {
       fadeToAction('idle');
     }
 
+
+// --- 衝突判定（追加部分） ---
+if (model) {
+    // A. 他のプレイヤーとの衝突判定
+    Object.values(remotePlayers).forEach(remote => {
+        if (remote.model) {
+            const dist = model.position.distanceTo(remote.model.position);
+            const minDistance = 1.8; // キャラ同士がこれ以上近づけない距離
+
+            if (dist < minDistance) {
+                // 押し戻すベクトルを計算
+                const pushDir = new THREE.Vector3()
+                    .subVectors(model.position, remote.model.position)
+                    .normalize();
+                
+                const overlap = minDistance - dist;
+                model.position.x += pushDir.x * overlap;
+                model.position.z += pushDir.z * overlap;
+            }
+        }
+    });
+
+    // B. 迷路の壁との判定（簡易版：Raycaster）
+    // 進行方向に「見えない光線」を飛ばして、壁があるかチェックします
+    const raycaster = new THREE.Raycaster();
+    const checkDirections = [
+        new THREE.Vector3(0, 0, -1).applyQuaternion(model.quaternion), // 前
+        new THREE.Vector3(0, 0, 1).applyQuaternion(model.quaternion),  // 後
+    ];
+
+    checkDirections.forEach(dir => {
+        raycaster.set(model.position, dir);
+        // sceneの中にある mazeModel (または全てのMesh) との距離を測る
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        
+        if (intersects.length > 0 && intersects[0].distance < 1.0) {
+            // 壁が近すぎる場合、少し押し戻す
+            model.position.addScaledVector(dir, -0.1);
+        }
+    });
+}
+
+
+
     // 三人称カメラ追従
     const distance = 8; 
     camera.position.x = model.position.x + distance * Math.sin(yaw) * Math.cos(pitch);
