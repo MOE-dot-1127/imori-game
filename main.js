@@ -18,6 +18,22 @@ const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(5, 10, 7.5);
 scene.add(light, new THREE.AmbientLight(0xffffff, 0.7), new THREE.GridHelper(200, 50));
 
+// --- 2. 迷路の読み込み（強制拡大） ---
+const mazeLoader = new GLTFLoader();
+mazeLoader.load('/models/maze.glb', (gltf) => {
+    const maze = gltf.scene;
+    maze.position.set(0, 0, 0); 
+    maze.scale.set(50, 50, 50); // 米粒サイズ対策で50倍に設定
+    scene.add(maze);
+
+    maze.traverse((child) => {
+        if (child.isMesh) {
+            child.material.side = THREE.DoubleSide; 
+        }
+    });
+    console.log("Maze loaded successfully!");
+}, undefined, (error) => console.error("Maze Load Error:", error));
+
 // --- 変数 ---
 let model, mixer;
 const actions = {};    // アニメーション保存用
