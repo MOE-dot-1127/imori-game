@@ -185,7 +185,7 @@ function animate() {
     // 三人称カメラ追従
     const distance = 8; 
     camera.position.x = model.position.x + distance * Math.sin(yaw) * Math.cos(pitch);
-    camera.position.y = model.position.y + distance * Math.sin(pitch) + 100
+    camera.position.y = model.position.y + distance * Math.sin(pitch) + 3
     camera.position.z = model.position.z + distance * Math.cos(yaw) * Math.cos(pitch);
     camera.lookAt(model.position.x, model.position.y + 1, model.position.z);
   }
