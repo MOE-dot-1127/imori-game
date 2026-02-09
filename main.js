@@ -16,7 +16,7 @@ document.body.appendChild(renderer.domElement);
 
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(5, 10, 7.5);
-scene.add(light, new THREE.AmbientLight(0xffffff, 0.7), new THREE.GridHelper(200, 50));
+scene.add(light, new THREE.AmbientLight(0xffffff, 0.7));
 
 
 // --- フィールドの見た目変更（真っ白空間Ver.） ---
