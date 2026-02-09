@@ -184,45 +184,47 @@ function animate() {
 
 // --- 衝突判定（追加部分） ---
 if (model) {
-    // A. 他のプレイヤーとの衝突判定
+    // 1. 他のプレイヤーとの衝突判定 (ここは今のままでもOKですが、よりスムーズに)
     Object.values(remotePlayers).forEach(remote => {
         if (remote.model) {
             const dist = model.position.distanceTo(remote.model.position);
-            const minDistance = 1.8; // キャラ同士がこれ以上近づけない距離
-
-            if (dist < minDistance) {
-                // 押し戻すベクトルを計算
-                const pushDir = new THREE.Vector3()
-                    .subVectors(model.position, remote.model.position)
-                    .normalize();
-                
-                const overlap = minDistance - dist;
-                model.position.x += pushDir.x * overlap;
-                model.position.z += pushDir.z * overlap;
+            if (dist < 1.5) {
+                const pushDir = new THREE.Vector3().subVectors(model.position, remote.model.position).normalize();
+                model.position.addScaledVector(pushDir, 0.1); 
             }
         }
     });
 
-    // B. 迷路の壁との判定（簡易版：Raycaster）
-    // 進行方向に「見えない光線」を飛ばして、壁があるかチェックします
+    // 2. 【重要】迷路の壁との判定 (Raycasterの改良)
     const raycaster = new THREE.Raycaster();
-    const checkDirections = [
+    
+    // 光線を出す高さを「腰の高さ(1.0)」に設定（床への誤反応を防ぐ）
+    const rayOrigin = model.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+    
+    // 前後左右の4方向をチェック
+    const directions = [
         new THREE.Vector3(0, 0, -1).applyQuaternion(model.quaternion), // 前
         new THREE.Vector3(0, 0, 1).applyQuaternion(model.quaternion),  // 後
+        new THREE.Vector3(-1, 0, 0).applyQuaternion(model.quaternion), // 左
+        new THREE.Vector3(1, 0, 0).applyQuaternion(model.quaternion),  // 右
     ];
 
-    checkDirections.forEach(dir => {
-        raycaster.set(model.position, dir);
-        // sceneの中にある mazeModel (または全てのMesh) との距離を測る
+    directions.forEach(dir => {
+        raycaster.set(rayOrigin, dir);
+        
+        // 迷路のモデルだけを判定対象にするのが理想ですが、
+        // 一旦 scene.children で判定し、自分自身を除外します
         const intersects = raycaster.intersectObjects(scene.children, true);
         
-        if (intersects.length > 0 && intersects[0].distance < 1.0) {
-            // 壁が近すぎる場合、少し押し戻す
-            model.position.addScaledVector(dir, -0.1);
+        // 自分以外のオブジェクトに 0.8m 以内でヒットしたら押し戻す
+        const wallHit = intersects.find(hit => hit.object.parent !== model && hit.object !== model);
+        
+        if (wallHit && wallHit.distance < 0.8) {
+            // 進もうとする方向と逆向きに押し戻す
+            model.position.addScaledVector(dir, -0.15);
         }
     });
 }
-
 
 
     // 三人称カメラ追従
