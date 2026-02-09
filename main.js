@@ -18,6 +18,25 @@ const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(5, 10, 7.5);
 scene.add(light, new THREE.AmbientLight(0xffffff, 0.7), new THREE.GridHelper(200, 50));
 
+
+// --- フィールドの見た目変更 ---
+// 1. 空の色を青空っぽくする
+scene.background = new THREE.Color(0x87ceeb); 
+
+// 2. 地面（草原）を作る
+const floorGeometry = new THREE.PlaneGeometry(200, 200);
+const floorMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x2d5a27, // 深い緑
+    roughness: 0.8 
+});
+const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+floor.rotation.x = -Math.PI / 2; // 床として平らにする
+scene.add(floor);
+
+// 元の GridHelper は削除するか、色を変えると馴染みます
+// scene.add(new THREE.GridHelper(200, 50, 0x000000, 0x444444));
+
+
 // --- 変数 ---
 let model, mixer;
 const actions = {};    // アニメーション保存用
@@ -175,4 +194,7 @@ function animate() {
   }
   renderer.render(scene, camera);
 }
+
+
+
 animate();
