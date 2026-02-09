@@ -8,7 +8,8 @@ const remotePlayers = {};
 // --- 1. シーン・レンダラーの初期化（ここを先に書く） ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111); // 007風に暗めに
-scene.fog = new THREE.Fog(0x111111, 10, 50);
+//ene.fog = new THREE.Fog(0x111111, 10, 50);
+
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
