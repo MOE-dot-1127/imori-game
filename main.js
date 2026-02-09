@@ -8,7 +8,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 // --- 設定 ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa0a0a0);
+scene.background = new THREE.Color(0xffffff);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -19,23 +19,26 @@ light.position.set(5, 10, 7.5);
 scene.add(light, new THREE.AmbientLight(0xffffff, 0.7), new THREE.GridHelper(200, 50));
 
 
-// --- フィールドの見た目変更 ---
-// 1. 空の色を青空っぽくする
-scene.background = new THREE.Color(0x87ceeb); 
+// --- フィールドの見た目変更（真っ白空間Ver.） ---
 
-// 2. 地面（草原）を作る
-const floorGeometry = new THREE.PlaneGeometry(200, 200);
+// 1. 背景を真っ白にする
+scene.background = new THREE.Color(0xffffff); 
+
+// 2. 霧（フォグ）を追加して遠くを白く飛ばす
+scene.fog = new THREE.Fog(0xffffff, 10, 50);
+
+// 3. 地面も「白」にする
+const floorGeometry = new THREE.PlaneGeometry(1000, 1000); 
 const floorMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x2d5a27, // 深い緑
-    roughness: 0.8 
+    color: 0xffffff, // ここを 0xffffff に！
+    roughness: 1.0 
 });
 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-floor.rotation.x = -Math.PI / 2; // 床として平らにする
+floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
-// 元の GridHelper は削除するか、色を変えると馴染みます
-// scene.add(new THREE.GridHelper(200, 50, 0x000000, 0x444444));
-
+// 4. グリッドは一旦消す（もし線が欲しければコメントアウトを外してね）
+// scene.add(new THREE.GridHelper(200, 50, 0xcccccc, 0xeeeeee)); 
 
 // --- 変数 ---
 let model, mixer;
@@ -99,20 +102,17 @@ function createRemotePlayer(id) {
 // サーバーからの更新を受け取る
 socket.on("updatePlayers", (players) => {
   Object.keys(players).forEach((id) => {
-    if (id === socket.id) return; // 自分は無視
+    if (id === socket.id) return;
 
     if (!remotePlayers[id]) {
-      // まだいないプレイヤーなら作成
       createRemotePlayer(id);
     } else {
-      // すでにいるプレイヤーなら座標と角度を更新
       const p = players[id];
       const remote = remotePlayers[id];
       if (remote.model) {
-        remote.model.position.set(p.x, p.y, p.z);
+        // 直接 set せずに、目標地点（targetPos）として保存する
+        remote.targetPos = new THREE.Vector3(p.x, p.y, p.z);
         remote.model.rotation.y = p.yaw;
-        // アニメーションの切り替え（簡易版）
-        // if (p.action !== remote.currentAction) { ... fadeToAction ... }
       }
     }
   });
@@ -149,10 +149,14 @@ function animate() {
   const delta = clock.getDelta();
   if (mixer) mixer.update(delta);
 
-  Object.values(remotePlayers).forEach(p => {
+Object.values(remotePlayers).forEach(p => {
     if (p.mixer) p.mixer.update(delta);
+    
+    // 目標地点がある場合、じわじわ近づける（補間処理）
+    if (p.model && p.targetPos) {
+      p.model.position.lerp(p.targetPos, 0.2); // 0.2は近づくスピード（0.1〜0.3で調整）
+    }
   });
-
   if (model) {
     const moveSpeed = 0.15;
     let inputX = 0;
