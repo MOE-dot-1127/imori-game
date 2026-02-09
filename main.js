@@ -29,10 +29,20 @@ mazeLoader.load('/models/maze.glb', (gltf) => {
     maze.position.set(0, 0, 0); 
     
     // もし小さすぎ/大きすぎたらここで調整（とりあえず2倍にしてみる例）
-    maze.scale.set(50, 50, 50);
+    maze.scale.set(100,100,100);
 
   
     scene.add(maze);
+
+    maze.traverse((child) => {
+    if (child.isMesh) {
+      // 3. 両面レンダリング (壁を裏から見ても消えないようにする)
+      child.material.side = THREE.DoubleSide;
+      // 4. 明るさ調整 (もし真っ黒ならこれで強制的に白くする)
+      // child.material.emissive = new THREE.Color(0x222222); 
+    }
+
+
     maze.traverse((child) => {
         if (child.isMesh) {
             child.material.side = THREE.DoubleSide; 
